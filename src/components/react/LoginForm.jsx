@@ -40,7 +40,7 @@ function LoginForm() {
 
       <div>
         <label htmlFor="email" className="block text-sm font-medium">
-          Email
+          Email!
         </label>
         <input
           type="email"
