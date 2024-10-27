@@ -21,7 +21,7 @@ const appointmentSchema = z.object({
 // Mock database (replace with your actual database logic)
 let appointments = [];
 
-export const post = async ({ request }) => {
+export async function POST({ request }) {
   try {
     const data = await request.json();
 
@@ -75,4 +75,4 @@ export const post = async ({ request }) => {
       status: 500,
     });
   }
-};
+}

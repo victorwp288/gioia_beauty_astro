@@ -1,14 +1,10 @@
-import { useState } from "react";
-import { Suspense, lazy } from "react";
-import pkg from 'react-use';
-const { useLocation } = pkg;
+import { useState, Suspense, lazy } from "react";
 
 // Use lazy loading instead of react-loadable
 const BurgerMenu = lazy(() => import("./BurgerMenu"));
 
 
 function Navbar() {
-  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Handle link clicks for smooth scrolling

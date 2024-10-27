@@ -1,18 +1,17 @@
 import React, { useContext, useEffect } from "react";
 import { AuthContext } from "./AuthProvider";
-import { supabase } from "../../lib/supabaseClient";
 
 const ProtectedRoute = ({ children }) => {
   const { session } = useContext(AuthContext);
 
   useEffect(() => {
-    if (!session) {
+    if (session === null) {
       window.location.href = "/login";
     }
   }, [session]);
 
-  if (!session) {
-    return <p>Loading...</p>;
+  if (session === null) {
+    return <div>Loading...</div>;
   }
 
   return <>{children}</>;

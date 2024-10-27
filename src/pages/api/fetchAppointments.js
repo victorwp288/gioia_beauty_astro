@@ -18,7 +18,7 @@ const fetchSchema = z.object({
   }),
 });
 
-export const get = async ({ request }) => {
+export async function GET({ request }) {
   try {
     const url = new URL(request.url);
     const date = url.searchParams.get("date");
@@ -50,4 +50,4 @@ export const get = async ({ request }) => {
       status: 500,
     });
   }
-};
+}

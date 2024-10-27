@@ -1,7 +1,10 @@
 import React, { createContext, useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext({
+  session: null,
+  user: null
+});
 
 export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
@@ -23,6 +26,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ session, user: session?.user }}>
+      {children}
+    </AuthContext.Provider>
   );
 };
