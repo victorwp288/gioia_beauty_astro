@@ -1,0 +1,19 @@
+---
+import AdminApp from '../components/react/AdminApp.jsx';
+import { AuthProvider } from '../components/react/AuthProvider.jsx';
+import Dashboard from '../components/react/Dashboard';
+import ProtectedRoute from '../components/react/ProtectedRoute.jsx';
+---
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard</title>
+  </head>
+  <body>
+    <AuthProvider client:load>
+      <ProtectedRoute client:load>
+        <Dashboard client:load />
+      </ProtectedRoute>
+    </AuthProvider>
+  </body>
+</html>

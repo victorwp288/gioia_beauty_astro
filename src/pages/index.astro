@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeroSection from '../components/HeroSection.astro';
+import NewsletterSignup from '../components/react/NewsletterSignup.jsx';
+import AboutUs from '../components/AboutUs.astro';
+import Technologies from '../components/react/Technologies.jsx';
+import ServicesContainer from '../components/ServicesContainer.astro';
+import AppointmentForm from '../components/react/AppointmentForm.jsx';
+---
+
+<Layout title="Your Site Title">
+  <HeroSection />
+  <AboutUs />
+  <Technologies client:load />
+  <ServicesContainer />
+  <AppointmentForm client:load />
+  <NewsletterSignup client:load />
+</Layout>
