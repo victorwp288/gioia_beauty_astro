@@ -29,8 +29,18 @@ export const ConfirmationEmailTemplate = ({
     <p>
       <i>Non è possibile rispondere a questa mail.</i>
     </p>
+    <p>
+      <a 
+        href="https://localhost:4321/unsubscribe" 
+        style={{
+          color: '#666',
+          textDecoration: 'underline'
+        }}
+      >
+        Unsubscribe from newsletter
+      </a>
+    </p>
   </div>
 );
 
 export default ConfirmationEmailTemplate;
-

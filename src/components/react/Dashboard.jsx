@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import Calendar from "react-calendar";
 import { format } from "date-fns";
 import "react-calendar/dist/Calendar.css";
-import SubscriberList from './SubscriberList';
+import appointmentTypesData from "../../../data/appointmentTypes.json";  // Add this line
 
 const Dashboard = () => {
   const [session, setSession] = useState(null);
@@ -13,6 +13,8 @@ const Dashboard = () => {
   const [fetchingAppointments, setFetchingAppointments] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     // Check current session
@@ -105,36 +107,7 @@ const Dashboard = () => {
     setAppointmentToDelete(appointment);
     setDeleteModalOpen(true);
   };
-  
-  const sendConfirmationEmail = async (appointment) => {
-    try {
-      const response = await fetch("/api/sendConfirmation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: appointment.email,
-          client_name: appointment.client_name,
-          appointment_type: appointment.appointment_type,
-          start_time: appointment.start_time,
-          duration_minutes: appointment.duration_minutes,
-        }),
-      });
 
-      const result = await response.json();
-      console.log("Confirmation email response:", result);
-
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to send confirmation email");
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Confirmation email error:", error);
-      return false;
-    }
-  };
   const sendCancellationEmail = async (appointment) => {
     try {
       // Send the raw appointment data
@@ -264,6 +237,163 @@ const Dashboard = () => {
     </div>
   );
 
+  const CreateAppointmentModal = () => {
+    const [formData, setFormData] = useState({
+      client_name: '',
+      phone_number: '',
+      email: '',
+      appointment_type: appointmentTypesData[0]?.type || '',
+      start_time: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      duration_minutes: appointmentTypesData[0]?.durations[0] || 60,
+      notes: ''
+    });
+
+    const handleAppointmentTypeChange = (e) => {
+      const newType = e.target.value;
+      const typeData = appointmentTypesData.find(t => t.type === newType);
+      setFormData(prev => ({
+        ...prev,
+        appointment_type: newType,
+        duration_minutes: typeData?.durations[0] || 60
+      }));
+    };
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setCreating(true);
+
+      try {
+        const { data, error } = await supabase
+          .from('appointments')
+          .insert([{
+            ...formData,
+            start_time: new Date(formData.start_time).toISOString()
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Send confirmation email
+        if (formData.email) {
+          await fetch('/api/sendConfirmation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: data.email,
+              client_name: data.client_name,
+              appointment_type: data.appointment_type,
+              start_time: data.start_time,
+              duration_minutes: data.duration_minutes,
+            }),
+          });
+        }
+
+        setAppointments(prev => [...prev, data]);
+        setCreateModalOpen(false);
+        alert('Appointment created successfully');
+      } catch (error) {
+        console.error('Error creating appointment:', error);
+        alert('Error creating appointment');
+      } finally {
+        setCreating(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+          <h3 className="text-lg font-semibold mb-4">Create New Appointment</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Client Name</label>
+              <input
+                type="text"
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={formData.client_name}
+                onChange={e => setFormData(prev => ({ ...prev, client_name: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+              <input
+                type="tel"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={formData.phone_number}
+                onChange={e => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <input
+                type="email"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={formData.email}
+                onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Appointment Type</label>
+              <select
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={formData.appointment_type}
+                onChange={handleAppointmentTypeChange}
+              >
+                {appointmentTypesData.map((type) => (
+                  <option key={type.id} value={type.type}>
+                    {type.type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Start Time</label>
+              <input
+                type="datetime-local"
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={formData.start_time}
+                onChange={e => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Notes</label>
+              <textarea
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={formData.notes}
+                onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-4 mt-6">
+              <button
+                type="button"
+                onClick={() => setCreateModalOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={creating}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {creating ? 'Creating...' : 'Create Appointment'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return <div className="p-4">Loading...</div>;
   }
@@ -275,7 +405,15 @@ const Dashboard = () => {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Welcome, {session.user.email}</h1>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold">Welcome, {session.user.email}</h1>
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="px-4 py-2 font-bold text-white bg-green-600 rounded hover:bg-green-700"
+          >
+            Create Appointment
+          </button>
+        </div>
         <button
           onClick={handleLogout}
           className="px-4 py-2 font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
@@ -353,12 +491,10 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-        <div className="md:col-span-2">
-          <SubscriberList />
-        </div>
       </div>
 
       {deleteModalOpen && <DeleteConfirmationModal />}
+      {createModalOpen && <CreateAppointmentModal />}
     </div>
   );
 };
