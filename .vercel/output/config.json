@@ -18,6 +18,10 @@
 		{
 			"src": "^\\/api\\/sendCancellation\\/?$",
 			"dest": "_render"
+		},
+		{
+			"src": "^\\/api\\/sendConfirmation\\/?$",
+			"dest": "_render"
 		}
 	]
 }

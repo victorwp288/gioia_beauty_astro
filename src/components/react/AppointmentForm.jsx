@@ -234,18 +234,47 @@ const AppointmentForm = () => {
         notes: data.notes || null,
       };
 
-      const { error } = await supabase
+      // Insert into Supabase
+      const { data: newAppointment, error } = await supabase
         .from('appointments')
-        .insert([appointmentData]);
+        .insert([appointmentData])
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Send confirmation email if email is provided
+      if (newAppointment.email) {
+        try {
+          const response = await fetch('/api/sendConfirmation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: newAppointment.email,
+              client_name: newAppointment.client_name,
+              appointment_type: newAppointment.appointment_type,
+              start_time: newAppointment.start_time,
+              duration_minutes: newAppointment.duration_minutes,
+            }),
+          });
+
+          if (!response.ok) {
+            console.warn('Failed to send confirmation email');
+          }
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+          // Don't throw here - we still want to show success even if email fails
+        }
+      }
 
       // Open confirmation modal
       setIsOpen(true);
       form.reset();
     } catch (error) {
       console.error("Error booking appointment:", error);
-      alert("An error occurred while booking your appointment.");
+      alert("Si è verificato un errore durante la prenotazione.");
     } finally {
       setSubmitting(false);
     }

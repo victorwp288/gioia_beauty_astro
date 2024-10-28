@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import Calendar from 'react-calendar';
-import { format } from 'date-fns';
-import 'react-calendar/dist/Calendar.css';
+import Calendar from "react-calendar";
+import { format } from "date-fns";
+import "react-calendar/dist/Calendar.css";
 
 const Dashboard = () => {
   const [session, setSession] = useState(null);
@@ -17,19 +17,21 @@ const Dashboard = () => {
     // Check current session
     const checkSession = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log('Current session:', currentSession);
-        
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
+        console.log("Current session:", currentSession);
+
         if (!currentSession) {
-          console.log('No session found, redirecting to login');
-          window.location.replace('/login');
+          console.log("No session found, redirecting to login");
+          window.location.replace("/login");
           return;
         }
-        
+
         setSession(currentSession);
       } catch (error) {
-        console.error('Session check error:', error);
-        window.location.replace('/login');
+        console.error("Session check error:", error);
+        window.location.replace("/login");
       } finally {
         setLoading(false);
       }
@@ -38,10 +40,12 @@ const Dashboard = () => {
     checkSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      console.log('Auth state changed:', event, newSession);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log("Auth state changed:", event, newSession);
       if (!newSession) {
-        window.location.replace('/login');
+        window.location.replace("/login");
         return;
       }
       setSession(newSession);
@@ -58,21 +62,21 @@ const Dashboard = () => {
       try {
         const startOfDay = new Date(selectedDate);
         startOfDay.setHours(0, 0, 0, 0);
-        
+
         const endOfDay = new Date(selectedDate);
         endOfDay.setHours(23, 59, 59, 999);
 
         const { data, error } = await supabase
-          .from('appointments')
-          .select('*')
-          .gte('start_time', startOfDay.toISOString())
-          .lt('start_time', endOfDay.toISOString())
-          .order('start_time', { ascending: true });
+          .from("appointments")
+          .select("*")
+          .gte("start_time", startOfDay.toISOString())
+          .lt("start_time", endOfDay.toISOString())
+          .order("start_time", { ascending: true });
 
         if (error) throw error;
         setAppointments(data || []);
       } catch (error) {
-        console.error('Error fetching appointments:', error);
+        console.error("Error fetching appointments:", error);
       } finally {
         setFetchingAppointments(false);
       }
@@ -90,9 +94,9 @@ const Dashboard = () => {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      window.location.replace('/');
+      window.location.replace("/");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
 
@@ -100,34 +104,63 @@ const Dashboard = () => {
     setAppointmentToDelete(appointment);
     setDeleteModalOpen(true);
   };
-
-  const sendCancellationEmail = async (appointment) => {
+  
+  const sendConfirmationEmail = async (appointment) => {
     try {
-      // Send the raw appointment data
-      const response = await fetch('/api/sendCancellation', {
-        method: 'POST',
+      const response = await fetch("/api/sendConfirmation", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: appointment.email,
           client_name: appointment.client_name,
           appointment_type: appointment.appointment_type,
           start_time: appointment.start_time,
-          duration_minutes: appointment.duration_minutes
-        })
+          duration_minutes: appointment.duration_minutes,
+        }),
       });
 
       const result = await response.json();
-      console.log('Server response:', result);
+      console.log("Confirmation email response:", result);
 
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to send email');
+        throw new Error(result.message || "Failed to send confirmation email");
       }
 
       return true;
     } catch (error) {
-      console.error('Email sending error:', error);
+      console.error("Confirmation email error:", error);
+      return false;
+    }
+  };
+  const sendCancellationEmail = async (appointment) => {
+    try {
+      // Send the raw appointment data
+      const response = await fetch("/api/sendCancellation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: appointment.email,
+          client_name: appointment.client_name,
+          appointment_type: appointment.appointment_type,
+          start_time: appointment.start_time,
+          duration_minutes: appointment.duration_minutes,
+        }),
+      });
+
+      const result = await response.json();
+      console.log("Server response:", result);
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to send email");
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Email sending error:", error);
       return false;
     }
   };
@@ -138,47 +171,57 @@ const Dashboard = () => {
     try {
       if (appointmentToDelete.email) {
         const emailSent = await sendCancellationEmail(appointmentToDelete);
-        if (!emailSent && !confirm('Failed to send notification email. Continue with cancellation?')) {
+        if (
+          !emailSent &&
+          !confirm(
+            "Failed to send notification email. Continue with cancellation?"
+          )
+        ) {
           return;
         }
       }
 
       // Archive appointment
       const { error: archiveError } = await supabase
-        .from('archived_appointments')
-        .insert([{
-          client_name: appointmentToDelete.client_name,
-          phone_number: appointmentToDelete.phone_number,
-          email: appointmentToDelete.email,
-          notes: appointmentToDelete.notes,
-          appointment_type: appointmentToDelete.appointment_type,
-          start_time: appointmentToDelete.start_time,
-          duration_minutes: appointmentToDelete.duration_minutes,
-          archived_at: new Date().toISOString(),
-          archived_by: session.user.email
-        }]);
+        .from("archived_appointments")
+        .insert([
+          {
+            client_name: appointmentToDelete.client_name,
+            phone_number: appointmentToDelete.phone_number,
+            email: appointmentToDelete.email,
+            notes: appointmentToDelete.notes,
+            appointment_type: appointmentToDelete.appointment_type,
+            start_time: appointmentToDelete.start_time,
+            duration_minutes: appointmentToDelete.duration_minutes,
+            archived_at: new Date().toISOString(),
+            archived_by: session.user.email,
+          },
+        ]);
 
       if (archiveError) throw archiveError;
 
       // Delete from appointments
       const { error: deleteError } = await supabase
-        .from('appointments')
+        .from("appointments")
         .delete()
         .match({ id: appointmentToDelete.id });
 
       if (deleteError) throw deleteError;
 
       // Update UI
-      setAppointments(appointments.filter(app => app.id !== appointmentToDelete.id));
+      setAppointments(
+        appointments.filter((app) => app.id !== appointmentToDelete.id)
+      );
       setDeleteModalOpen(false);
       setAppointmentToDelete(null);
 
-      alert('Appuntamento archiviato con successo' + 
-            (appointmentToDelete.email ? ' e email di notifica inviata' : ''));
-
+      alert(
+        "Appuntamento archiviato con successo" +
+          (appointmentToDelete.email ? " e email di notifica inviata" : "")
+      );
     } catch (error) {
-      console.error('Error in archive process:', error);
-      alert('Errore durante la cancellazione dell\'appuntamento');
+      console.error("Error in archive process:", error);
+      alert("Errore durante la cancellazione dell'appuntamento");
     }
   };
 
@@ -187,12 +230,17 @@ const Dashboard = () => {
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
         <h3 className="text-lg font-semibold mb-4">Confirm Archive</h3>
         <p className="mb-6">
-          Are you sure you want to archive the appointment for{' '}
+          Are you sure you want to archive the appointment for{" "}
           <span className="font-semibold">
             {appointmentToDelete?.client_name}
-          </span>
-          {' '}on{' '}
-          {appointmentToDelete && format(new Date(appointmentToDelete.start_time), 'dd/MM/yyyy HH:mm')}?
+          </span>{" "}
+          on{" "}
+          {appointmentToDelete &&
+            format(
+              new Date(appointmentToDelete.start_time),
+              "dd/MM/yyyy HH:mm"
+            )}
+          ?
         </p>
         <div className="flex justify-end space-x-4">
           <button
@@ -226,9 +274,7 @@ const Dashboard = () => {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          Welcome, {session.user.email}
-        </h1>
+        <h1 className="text-2xl font-bold">Welcome, {session.user.email}</h1>
         <button
           onClick={handleLogout}
           className="px-4 py-2 font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
@@ -251,9 +297,9 @@ const Dashboard = () => {
         {/* Updated Appointments List Section */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">
-            Appointments for {format(selectedDate, 'dd/MM/yyyy')}
+            Appointments for {format(selectedDate, "dd/MM/yyyy")}
           </h2>
-          
+
           {fetchingAppointments ? (
             <div className="text-center py-4">Loading appointments...</div>
           ) : appointments.length === 0 ? (
@@ -276,12 +322,17 @@ const Dashboard = () => {
                   </button>
                   <div className="flex justify-between items-start pr-8">
                     <div>
-                      <h3 className="font-semibold">{appointment.client_name}</h3>
+                      <h3 className="font-semibold">
+                        {appointment.client_name}
+                      </h3>
                       <p className="text-sm text-gray-600">
-                        {format(new Date(appointment.start_time), 'HH:mm')} - 
+                        {format(new Date(appointment.start_time), "HH:mm")} -
                         {format(
-                          new Date(new Date(appointment.start_time).getTime() + appointment.duration_minutes * 60000),
-                          'HH:mm'
+                          new Date(
+                            new Date(appointment.start_time).getTime() +
+                              appointment.duration_minutes * 60000
+                          ),
+                          "HH:mm"
                         )}
                       </p>
                       <p className="text-sm">{appointment.appointment_type}</p>
