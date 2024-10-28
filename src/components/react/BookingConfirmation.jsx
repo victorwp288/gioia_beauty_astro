@@ -2,7 +2,6 @@
 
 import React from "react";
 import Modal from "react-modal";
-import { Button } from "@/components/ui/button";
 
 Modal.setAppElement("#__astro"); // Ensure accessibility by setting the root element
 
@@ -21,9 +20,9 @@ const BookingConfirmation = ({ isOpen, onRequestClose }) => {
           Grazie per aver prenotato un appuntamento con noi! Ti abbiamo inviato
           una conferma via email.
         </p>
-        <Button onClick={onRequestClose} className="w-full">
+        <button onClick={onRequestClose} className="w-full">
           Chiudi
-        </Button>
+        </button>
       </div>
     </Modal>
   );

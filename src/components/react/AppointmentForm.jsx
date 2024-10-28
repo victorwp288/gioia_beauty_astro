@@ -1,21 +1,22 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, isBefore, addDays } from "date-fns";
+import { addDays, format, parse, isBefore } from "date-fns"; // Added isBefore
 import appointmentTypesData from "../../../data/appointmentTypes.json";
+import { supabase } from '../../lib/supabaseClient';
 
 // Define the zod schema
 const formSchema = z.object({
-  date: z.date(),
-  note: z.string().optional(),
-  name: z.string().min(1, "Name is required"),
-  number: z.string().min(1, "Phone number is required"),
+  client_name: z.string().min(1, "Name is required"),
+  phone_number: z.string().min(1, "Phone number is required"),
   email: z.string().email("Invalid email address").optional(),
+  appointment_type: z.string().min(1, "Appointment type is required"),
+  // Change this to handle string date input
+  start_time: z.string().min(1, "Date is required"),
   timeSlot: z.string().min(1, "Time slot is required"),
-  appointmentType: z.string().min(1, "Appointment type is required"),
-  variant: z.string().optional(),
-  duration: z.number().min(1, "Duration is required"),
+  duration_minutes: z.number().min(1, "Duration is required"),
+  notes: z.string().optional(),
 });
 
 // Opening and closing hours
@@ -43,15 +44,14 @@ const AppointmentForm = () => {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      date: null,
-      note: "",
-      name: "",
-      number: "",
+      client_name: "",
+      phone_number: "",
       email: "",
+      appointment_type: appointmentTypes[0]?.type || "",
+      start_time: format(new Date(), 'yyyy-MM-dd'), // Format as string
       timeSlot: "",
-      appointmentType: appointmentTypes[0].type,
-      variant: "",
-      duration: appointmentTypes[0].durations[0],
+      duration_minutes: appointmentTypes[0]?.durations[0] || 30,
+      notes: "",
     },
   });
 
@@ -64,48 +64,75 @@ const AppointmentForm = () => {
 
   // Fetch available time slots based on selected date and appointment type
   const fetchTimeSlots = useCallback(
-    async (date, appointmentType) => {
-      if (!date || !appointmentType) {
+    async (selectedDate, appointmentType) => {
+      if (!selectedDate || !appointmentType) {
+        console.log("Missing required data:", { selectedDate, appointmentType });
         setTimeSlots([]);
         return;
-      }
-
-      const dayOfWeek = date.getDay();
-      const hours = openCloseHours[dayOfWeek];
-
-      if (!hours) {
-        setTimeSlots([]);
-        return; // Closed day, no available slots
       }
 
       setLoadingSlots(true);
 
       try {
-        // Fetch existing appointments for the selected date
-        const response = await fetch(
-          `/api/fetchAppointments?date=${format(date, "yyyy-MM-dd")}`
-        );
-        const existingAppointments = await response.json();
+        // Format the date properly for the query
+        const queryDate = format(new Date(selectedDate), 'yyyy-MM-dd');
+        const startOfDay = `${queryDate}T00:00:00.000Z`;
+        const endOfDay = `${queryDate}T23:59:59.999Z`;
 
+        console.log("Fetching appointments for:", {
+          startOfDay,
+          endOfDay,
+          appointmentType
+        });
+
+        // Fetch existing appointments for the selected date
+        const { data: existingAppointments, error } = await supabase
+          .from('appointments')
+          .select('*')
+          .gte('start_time', startOfDay)
+          .lt('start_time', endOfDay)
+          .order('start_time');
+
+        if (error) {
+          console.error("Supabase query error:", error);
+          throw error;
+        }
+
+        console.log("Existing appointments:", existingAppointments);
+
+        const date = new Date(selectedDate);
+        const dayOfWeek = date.getDay();
+        const hours = openCloseHours[dayOfWeek];
+
+        if (!hours) {
+          console.log("No hours for day:", dayOfWeek);
+          setTimeSlots([]);
+          return;
+        }
+
+        const duration = parseInt(form.getValues("duration_minutes"));
         const availableTimeSlots = generateTimeSlots(
           date,
-          existingAppointments,
+          existingAppointments || [],
           hours,
-          appointmentType.durations.find((d) => d === form.getValues("duration")) || appointmentType.durations[0]
+          duration
         );
 
+        console.log("Generated time slots:", availableTimeSlots);
+
         setTimeSlots(availableTimeSlots);
-        if (availableTimeSlots.length > 0) {
-          setSelectedTimeSlot(availableTimeSlots[0]);
+        
+        // Only set the first time slot if none is selected
+        if (availableTimeSlots.length > 0 && !form.getValues("timeSlot")) {
           form.setValue("timeSlot", availableTimeSlots[0]);
-        } else {
-          // Handle no available slots
-          alert("No available time slots for the selected date.");
-          form.setValue("timeSlot", "");
         }
       } catch (error) {
-        console.error("Error fetching time slots:", error);
-        alert("An error occurred while fetching time slots.");
+        console.error("Detailed error:", {
+          message: error.message,
+          error: error,
+          stack: error.stack
+        });
+        alert(`Error fetching time slots: ${error.message}`);
       } finally {
         setLoadingSlots(false);
       }
@@ -115,60 +142,107 @@ const AppointmentForm = () => {
 
   // Generate time slots
   const generateTimeSlots = (date, existingAppointments, hours, duration) => {
-    const [openHours, openMinutes] = hours.open.split(":").map(Number);
-    const [closeHours, closeMinutes] = hours.close.split(":").map(Number);
-    const openingTime = openHours * 60 + openMinutes;
-    const closingTime = closeHours * 60 + closeMinutes;
+    try {
+      const [openHours, openMinutes] = hours.open.split(":").map(Number);
+      const [closeHours, closeMinutes] = hours.close.split(":").map(Number);
+      const openingTime = openHours * 60 + openMinutes;
+      const closingTime = closeHours * 60 + closeMinutes;
 
-    const slots = [];
-    let time = openingTime;
+      const slots = [];
+      let time = openingTime;
 
-    while (time + duration <= closingTime) {
-      const slotTime = format(new Date(date.setHours(0, 0, 0, 0) + time * 60000), "HH:mm");
-      // Check if the slot is already booked
-      const isBooked = existingAppointments.some((appt) => appt.timeSlot === slotTime);
-      if (!isBooked) {
-        slots.push(slotTime);
+      const dateStr = format(date, 'yyyy-MM-dd');
+
+      while (time + duration <= closingTime) {
+        const hours = Math.floor(time / 60);
+        const minutes = time % 60;
+        const slotTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+        // Check if the slot is already booked
+        const isBooked = existingAppointments.some(appt => {
+          const appointmentStart = new Date(appt.start_time);
+          const appointmentEnd = new Date(appointmentStart.getTime() + appt.duration_minutes * 60000);
+          const slotStart = new Date(`${dateStr}T${slotTime}`);
+          const slotEnd = new Date(slotStart.getTime() + duration * 60000);
+
+          return (
+            (slotStart >= appointmentStart && slotStart < appointmentEnd) ||
+            (slotEnd > appointmentStart && slotEnd <= appointmentEnd)
+          );
+        });
+
+        if (!isBooked) {
+          slots.push(slotTime);
+        }
+        time += 15; // 15-minute intervals
       }
-      time += 15; // Increment by 15 minutes
-    }
 
-    return slots;
+      return slots;
+    } catch (error) {
+      console.error("Error generating time slots:", error);
+      return [];
+    }
   };
 
   // Handle date and appointment type changes to fetch time slots
   useEffect(() => {
-    const subscription = form.watch(({ date, appointmentType, duration }) => {
-      if (date && appointmentType && duration) {
-        fetchTimeSlots(date, { type: appointmentType, durations: [duration] });
+    const subscription = form.watch((value, { name }) => {
+      console.log("Form value changed:", { name, value });
+      
+      const values = form.getValues();
+      if (values.start_time && values.appointment_type) {
+        fetchTimeSlots(
+          values.start_time,
+          {
+            type: values.appointment_type,
+            durations: [parseInt(values.duration_minutes)]
+          }
+        );
       }
     });
+
+    // Initial fetch
+    const values = form.getValues();
+    if (values.start_time && values.appointment_type) {
+      console.log("Initial fetch with values:", values);
+      fetchTimeSlots(
+        values.start_time,
+        {
+          type: values.appointment_type,
+          durations: [parseInt(values.duration_minutes)]
+        }
+      );
+    }
+
     return () => subscription.unsubscribe();
-  }, [form.watch, fetchTimeSlots]);
+  }, [fetchTimeSlots]);
 
   const handleSubmit = async (data) => {
     setSubmitting(true);
     try {
-      const response = await fetch("/api/bookAppointment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...data,
-          date: data.date.toISOString(),
-        }),
-      });
+      // Combine date and time slot into a single timestamp
+      const dateStr = format(data.start_time, 'yyyy-MM-dd');
+      const startDateTime = new Date(`${dateStr}T${data.timeSlot}`);
 
-      const result = await response.json();
+      const appointmentData = {
+        client_name: data.client_name,
+        phone_number: data.phone_number,
+        email: data.email || null,
+        appointment_type: data.appointment_type,
+        start_time: startDateTime.toISOString(),
+        duration_minutes: data.duration_minutes,
+        notes: data.notes || null,
+      };
 
-      if (response.ok) {
-        // Open confirmation modal
-        setIsOpen(true);
-        form.reset();
-      } else {
-        alert(result.message);
-      }
+      const { error } = await supabase
+        .from('appointments')
+        .insert([appointmentData]);
+
+      if (error) throw error;
+
+      // Open confirmation modal
+      setIsOpen(true);
+      form.reset();
     } catch (error) {
       console.error("Error booking appointment:", error);
       alert("An error occurred while booking your appointment.");
@@ -197,16 +271,16 @@ const AppointmentForm = () => {
         <div className="grid grid-cols-1 items-end gap-8 md:grid-cols-2">
           {/* Date Picker */}
           <div>
-            <label htmlFor="date">Seleziona data*</label>
+            <label htmlFor="start_time">Seleziona data*</label>
             <input
               type="date"
-              id="date"
-              {...form.register("date")}
-              min={addDays(new Date(), 1).toISOString().split('T')[0]}
+              id="start_time"
+              {...form.register("start_time")}
+              min={format(addDays(new Date(), 1), 'yyyy-MM-dd')}
               className="w-full p-2 border rounded"
             />
-            {form.formState.errors.date && (
-              <span className="text-red-500">{form.formState.errors.date.message}</span>
+            {form.formState.errors.start_time && (
+              <span className="text-red-500">{form.formState.errors.start_time.message}</span>
             )}
           </div>
 
@@ -217,25 +291,35 @@ const AppointmentForm = () => {
               id="timeSlot"
               {...form.register("timeSlot")}
               className="w-full p-2 border rounded"
+              disabled={loadingSlots}
             >
-              <option value="">Seleziona orario</option>
+              <option value="">
+                {loadingSlots ? "Caricamento orari..." : "Seleziona orario"}
+              </option>
               {timeSlots.map((slot) => (
                 <option key={slot} value={slot}>
                   {slot}
                 </option>
               ))}
             </select>
+            {timeSlots.length === 0 && !loadingSlots && (
+              <span className="text-yellow-600">
+                Nessun orario disponibile per questa data
+              </span>
+            )}
             {form.formState.errors.timeSlot && (
-              <span className="text-red-500">{form.formState.errors.timeSlot.message}</span>
+              <span className="text-red-500">
+                {form.formState.errors.timeSlot.message}
+              </span>
             )}
           </div>
 
           {/* Appointment Type */}
           <div>
-            <label htmlFor="appointmentType">Tipo di appuntamento*</label>
+            <label htmlFor="appointment_type">Tipo di appuntamento*</label>
             <select
-              id="appointmentType"
-              {...form.register("appointmentType")}
+              id="appointment_type"
+              {...form.register("appointment_type")}
               className="w-full p-2 border rounded"
             >
               {appointmentTypes.map((type) => (
@@ -244,18 +328,18 @@ const AppointmentForm = () => {
                 </option>
               ))}
             </select>
-            {form.formState.errors.appointmentType && (
-              <span className="text-red-500">{form.formState.errors.appointmentType.message}</span>
+            {form.formState.errors.appointment_type && (
+              <span className="text-red-500">{form.formState.errors.appointment_type.message}</span>
             )}
           </div>
 
           {/* Note Field */}
           <div>
-            <label htmlFor="note">Note</label>
+            <label htmlFor="notes">Note</label>
             <input
               type="text"
-              id="note"
-              {...form.register("note")}
+              id="notes"
+              {...form.register("notes")}
               className="w-full p-2 border rounded"
               placeholder="Note"
             />
@@ -263,25 +347,25 @@ const AppointmentForm = () => {
 
           {/* Name Field */}
           <div>
-            <label htmlFor="name">Nome e Cognome*</label>
+            <label htmlFor="client_name">Nome e Cognome*</label>
             <input
               type="text"
-              id="name"
-              {...form.register("name")}
+              id="client_name"
+              {...form.register("client_name")}
               className="w-full p-2 border rounded"
             />
-            {form.formState.errors.name && (
-              <span className="text-red-500">{form.formState.errors.name.message}</span>
+            {form.formState.errors.client_name && (
+              <span className="text-red-500">{form.formState.errors.client_name.message}</span>
             )}
           </div>
 
           {/* Phone Number Field */}
           <div>
-            <label htmlFor="number">Numero di telefono*</label>
+            <label htmlFor="phone_number">Numero di telefono*</label>
             <input
               type="tel"
-              id="number"
-              {...form.register("number", {
+              id="phone_number"
+              {...form.register("phone_number", {
                 required: "Phone number is required",
                 pattern: {
                   value: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
@@ -291,8 +375,8 @@ const AppointmentForm = () => {
               className="w-full p-2 border rounded"
               placeholder="+39 XXX XXX XXXX"
             />
-            {form.formState.errors.number && (
-              <span className="text-red-500">{form.formState.errors.number.message}</span>
+            {form.formState.errors.phone_number && (
+              <span className="text-red-500">{form.formState.errors.phone_number.message}</span>
             )}
           </div>
 

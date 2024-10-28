@@ -1,18 +1,14 @@
 ---
-import { AuthProvider } from '../components/react/AuthProvider.jsx';
-import ProtectedRoute from '../components/react/ProtectedRoute.jsx';
-import Dashboard from '../components/react/Dashboard.jsx';
+import Dashboard from '../components/react/Dashboard';
 ---
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Dashboard</title>
+    <title>Admin Dashboard</title>
   </head>
   <body>
-    <AuthProvider client:load>
-      <ProtectedRoute client:load>
-        <Dashboard client:load />
-      </ProtectedRoute>
-    </AuthProvider>
+    <div id="admin-root">
+      <Dashboard client:only="react" />
+    </div>
   </body>
 </html>
