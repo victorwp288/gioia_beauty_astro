@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabaseClient";
 import Calendar from "react-calendar";
 import { format } from "date-fns";
 import "react-calendar/dist/Calendar.css";
+import SubscriberList from './SubscriberList';
 
 const Dashboard = () => {
   const [session, setSession] = useState(null);
@@ -351,6 +352,9 @@ const Dashboard = () => {
               ))}
             </div>
           )}
+        </div>
+        <div className="md:col-span-2">
+          <SubscriberList />
         </div>
       </div>
 
