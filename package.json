@@ -23,6 +23,7 @@
     "lucide-react": "^0.453.0",
     "react": "^18.3.1",
     "react-calendar": "^5.1.0",
+    "react-datepicker": "^7.5.0",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "react-loadable": "^5.5.0",

@@ -40,7 +40,18 @@ const ConfirmationEmailTemplate = ({
   ] }),
   /* @__PURE__ */ jsx("p", { children: "Ti aspettiamo!" }),
   /* @__PURE__ */ jsx("p", { children: "Se hai bisogno di cancellare o modificare l'appuntamento, contattaci direttamente." }),
-  /* @__PURE__ */ jsx("p", { children: /* @__PURE__ */ jsx("i", { children: "Non è possibile rispondere a questa mail." }) })
+  /* @__PURE__ */ jsx("p", { children: /* @__PURE__ */ jsx("i", { children: "Non è possibile rispondere a questa mail." }) }),
+  /* @__PURE__ */ jsx("p", { children: /* @__PURE__ */ jsx(
+    "a",
+    {
+      href: "https://localhost:4321/unsubscribe",
+      style: {
+        color: "#666",
+        textDecoration: "underline"
+      },
+      children: "Unsubscribe from newsletter"
+    }
+  ) })
 ] });
 
 const prerender = false;

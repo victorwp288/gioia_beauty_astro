@@ -4,6 +4,7 @@ import Calendar from "react-calendar";
 import { format } from "date-fns";
 import "react-calendar/dist/Calendar.css";
 import appointmentTypesData from "../../../data/appointmentTypes.json";  // Add this line
+import SubscriberList from "./SubscriberList";
 
 const Dashboard = () => {
   const [session, setSession] = useState(null);
@@ -15,6 +16,8 @@ const Dashboard = () => {
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [vacationModalOpen, setVacationModalOpen] = useState(false);
+  const [vacationPeriods, setVacationPeriods] = useState([]);
 
   useEffect(() => {
     // Check current session
@@ -89,6 +92,23 @@ const Dashboard = () => {
       fetchAppointments();
     }
   }, [selectedDate]);
+
+  useEffect(() => {
+    const fetchVacations = async () => {
+      const { data, error } = await supabase
+        .from('vacation_periods')
+        .select('*')
+        .gte('end_date', new Date().toISOString());
+      
+      if (!error && data) {
+        setVacationPeriods(data);
+      } else {
+        console.error('Error fetching vacations:', error);
+      }
+    };
+
+    fetchVacations();
+  }, []);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
@@ -196,6 +216,28 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error in archive process:", error);
       alert("Errore durante la cancellazione dell'appuntamento");
+    }
+  };
+
+  const handleDeleteVacation = async (vacationId) => {
+    if (!confirm('Are you sure you want to delete this vacation period?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('vacation_periods')
+        .delete()
+        .eq('id', vacationId);
+
+      if (error) throw error;
+
+      // Update local state
+      setVacationPeriods(prev => prev.filter(v => v.id !== vacationId));
+      alert('Vacation period deleted successfully');
+    } catch (error) {
+      console.error('Error deleting vacation:', error);
+      alert('Error deleting vacation period');
     }
   };
 
@@ -394,6 +436,92 @@ const Dashboard = () => {
     );
   };
 
+  const VacationModal = () => {
+    const [dates, setDates] = useState({
+      start_date: '',
+      end_date: ''
+    });
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      try {
+        // Get the current user's ID and log all the data
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('Current user data:', user); // Debug log
+        
+        if (!user) throw new Error('No user found');
+
+        // Create the vacation period
+        const vacationData = {
+          start_date: new Date(dates.start_date).toISOString(),
+          end_date: new Date(dates.end_date + 'T23:59:59').toISOString(),
+        };
+        
+        console.log('Inserting vacation data:', vacationData); // Debug log
+
+        const { error } = await supabase
+          .from('vacation_periods')
+          .insert([vacationData]);
+
+        if (error) throw error;
+        setVacationModalOpen(false);
+        alert('Vacation period added successfully');
+      } catch (error) {
+        console.error('Error adding vacation period:', error);
+        alert('Error adding vacation period');
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+          <h3 className="text-lg font-semibold mb-4">Add Vacation Period</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Start Date</label>
+              <input
+                type="date"
+                required
+                min={format(new Date(), 'yyyy-MM-dd')}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={dates.start_date}
+                onChange={e => setDates(prev => ({ ...prev, start_date: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">End Date</label>
+              <input
+                type="date"
+                required
+                min={dates.start_date || format(new Date(), 'yyyy-MM-dd')}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={dates.end_date}
+                onChange={e => setDates(prev => ({ ...prev, end_date: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-4 mt-6">
+              <button
+                type="button"
+                onClick={() => setVacationModalOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Add Vacation
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return <div className="p-4">Loading...</div>;
   }
@@ -403,7 +531,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 space-y-8">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold">Welcome, {session.user.email}</h1>
@@ -412,6 +540,12 @@ const Dashboard = () => {
             className="px-4 py-2 font-bold text-white bg-green-600 rounded hover:bg-green-700"
           >
             Create Appointment
+          </button>
+          <button
+            onClick={() => setVacationModalOpen(true)}
+            className="px-4 py-2 font-bold text-white bg-purple-600 rounded hover:bg-purple-700"
+          >
+            Add Vacation
           </button>
         </div>
         <button
@@ -493,8 +627,54 @@ const Dashboard = () => {
         </div>
       </div>
 
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Vacation Periods</h2>
+          <button
+            onClick={() => setVacationModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Add Vacation
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {vacationPeriods.map((vacation) => (
+            <div
+              key={vacation.id}
+              className="border p-4 rounded-lg hover:bg-gray-50 relative"
+            >
+              <button
+                onClick={() => handleDeleteVacation(vacation.id)}
+                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                title="Delete vacation period"
+              >
+                ×
+              </button>
+              <div className="pr-8">
+                <p className="text-sm text-gray-600">
+                  From: {format(new Date(vacation.start_date), "dd/MM/yyyy")}
+                </p>
+                <p className="text-sm text-gray-600">
+                  To: {format(new Date(vacation.end_date), "dd/MM/yyyy")}
+                </p>
+              </div>
+            </div>
+          ))}
+          {vacationPeriods.length === 0 && (
+            <p className="text-gray-500 text-center py-4">
+              No vacation periods scheduled
+            </p>
+          )}
+        </div>
+      </div>
+
       {deleteModalOpen && <DeleteConfirmationModal />}
       {createModalOpen && <CreateAppointmentModal />}
+      {vacationModalOpen && <VacationModal />}
+      <div className="mt-8">
+        <SubscriberList />
+      </div>
     </div>
   );
 };

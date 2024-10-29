@@ -38,6 +38,7 @@ const AppointmentForm = () => {
   const [modalIsOpen, setIsOpen] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [vacationPeriods, setVacationPeriods] = useState([]);
 
   const appointmentTypes = appointmentTypesData;
 
@@ -59,7 +60,20 @@ const AppointmentForm = () => {
   const isDisabledDay = (day) => {
     const today = new Date();
     const tomorrow = addDays(today, 1);
-    return isBefore(day, tomorrow) || !openCloseHours[day.getDay()];
+    const checkDate = new Date(day);
+    
+    // Check if day is during any vacation period
+    const isDuringVacation = vacationPeriods.some(period => {
+      const startDate = new Date(period.start_date);
+      const endDate = new Date(period.end_date);
+      return checkDate >= startDate && checkDate <= endDate;
+    });
+
+    return (
+      isBefore(checkDate, tomorrow) || 
+      !openCloseHours[checkDate.getDay()] || 
+      isDuringVacation
+    );
   };
 
   // Fetch available time slots based on selected date and appointment type
@@ -217,6 +231,26 @@ const AppointmentForm = () => {
     return () => subscription.unsubscribe();
   }, [fetchTimeSlots]);
 
+  // Fetch vacation periods when component mounts
+  useEffect(() => {
+    const fetchVacationPeriods = async () => {
+      const { data, error } = await supabase
+        .from('vacation_periods')
+        .select('*')
+        .gte('end_date', new Date().toISOString());
+      
+      if (error) {
+        console.error('Error fetching vacation periods:', error);
+        return;
+      }
+      
+      console.log('Fetched vacation periods:', data);
+      setVacationPeriods(data);
+    };
+
+    fetchVacationPeriods();
+  }, []);
+
   const handleSubmit = async (data) => {
     setSubmitting(true);
     try {
@@ -283,6 +317,31 @@ const AppointmentForm = () => {
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
 
+  const handleDateChange = (e) => {
+    const selectedDate = new Date(e.target.value);
+    console.log('Selected date:', selectedDate);
+    console.log('Vacation periods:', vacationPeriods);
+
+    const isDuringVacation = vacationPeriods.some(period => {
+      const startDate = new Date(period.start_date);
+      const endDate = new Date(period.end_date);
+      const isVacation = selectedDate >= startDate && selectedDate <= endDate;
+      console.log('Checking vacation period:', { startDate, endDate, isVacation });
+      return isVacation;
+    });
+
+    if (isDuringVacation) {
+      alert('This date is not available due to vacation');
+      e.target.value = '';
+      form.setValue('start_time', '');
+      setTimeSlots([]);
+      return;
+    }
+
+    form.setValue('start_time', e.target.value);
+    fetchTimeSlots(e.target.value, form.getValues('appointment_type'));
+  };
+
   return (
     <div className="m-auto mt-12 w-[90vw] space-y-4 md:w-[70vw]">
       {/* Section Header */}
@@ -304,9 +363,10 @@ const AppointmentForm = () => {
             <input
               type="date"
               id="start_time"
-              {...form.register("start_time")}
+              onChange={handleDateChange}
               min={format(addDays(new Date(), 1), 'yyyy-MM-dd')}
               className="w-full p-2 border rounded"
+              value={form.getValues('start_time')}
             />
             {form.formState.errors.start_time && (
               <span className="text-red-500">{form.formState.errors.start_time.message}</span>
