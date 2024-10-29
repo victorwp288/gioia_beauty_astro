@@ -5,6 +5,11 @@ import { z } from "zod";
 import { addDays, format, parse, isBefore } from "date-fns"; // Added isBefore
 import appointmentTypesData from "../../../data/appointmentTypes.json";
 import { supabase } from '../../lib/supabaseClient';
+import { Calendar } from "../ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { Button } from "../ui/button"
+import { CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 // Define the zod schema
 const formSchema = z.object({
@@ -39,6 +44,7 @@ const AppointmentForm = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [vacationPeriods, setVacationPeriods] = useState([]);
+  const [showDurationSelect, setShowDurationSelect] = useState(false);
 
   const appointmentTypes = appointmentTypesData;
 
@@ -317,29 +323,13 @@ const AppointmentForm = () => {
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
 
-  const handleDateChange = (e) => {
-    const selectedDate = new Date(e.target.value);
-    console.log('Selected date:', selectedDate);
-    console.log('Vacation periods:', vacationPeriods);
-
-    const isDuringVacation = vacationPeriods.some(period => {
-      const startDate = new Date(period.start_date);
-      const endDate = new Date(period.end_date);
-      const isVacation = selectedDate >= startDate && selectedDate <= endDate;
-      console.log('Checking vacation period:', { startDate, endDate, isVacation });
-      return isVacation;
-    });
-
-    if (isDuringVacation) {
-      alert('This date is not available due to vacation');
-      e.target.value = '';
-      form.setValue('start_time', '');
-      setTimeSlots([]);
-      return;
-    }
-
-    form.setValue('start_time', e.target.value);
-    fetchTimeSlots(e.target.value, form.getValues('appointment_type'));
+  const handleAppointmentTypeChange = (type) => {
+    const selectedType = appointmentTypes.find(t => t.type === type);
+    const hasManyDurations = selectedType?.durations.length > 1;
+    setShowDurationSelect(hasManyDurations);
+    
+    // Set default duration to first available duration
+    form.setValue("duration_minutes", selectedType?.durations[0] || 30);
   };
 
   return (
@@ -358,16 +348,41 @@ const AppointmentForm = () => {
       <form onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="grid grid-cols-1 items-end gap-8 md:grid-cols-2">
           {/* Date Picker */}
-          <div>
+          <div className="flex flex-col space-y-2">
             <label htmlFor="start_time">Seleziona data*</label>
-            <input
-              type="date"
-              id="start_time"
-              onChange={handleDateChange}
-              min={format(addDays(new Date(), 1), 'yyyy-MM-dd')}
-              className="w-full p-2 border rounded"
-              value={form.getValues('start_time')}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !form.getValues("start_time") && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {form.getValues("start_time") ? (
+                    format(new Date(form.getValues("start_time")), "dd/MM/yyyy")
+                  ) : (
+                    <span>Seleziona una data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={form.getValues("start_time") ? new Date(form.getValues("start_time")) : undefined}
+                  onSelect={(date) => {
+                    if (!date) return;
+                    const formattedDate = format(date, 'yyyy-MM-dd');
+                    form.setValue("start_time", formattedDate);
+                    fetchTimeSlots(formattedDate, form.getValues("appointment_type"));
+                  }}
+                  disabled={(date) => isDisabledDay(date)}
+                  initialFocus
+                  fromDate={addDays(new Date(), 1)}
+                />
+              </PopoverContent>
+            </Popover>
             {form.formState.errors.start_time && (
               <span className="text-red-500">{form.formState.errors.start_time.message}</span>
             )}
@@ -410,6 +425,10 @@ const AppointmentForm = () => {
               id="appointment_type"
               {...form.register("appointment_type")}
               className="w-full p-2 border rounded"
+              onChange={(e) => {
+                form.setValue("appointment_type", e.target.value);
+                handleAppointmentTypeChange(e.target.value);
+              }}
             >
               {appointmentTypes.map((type) => (
                 <option key={type.type} value={type.type}>
@@ -421,6 +440,40 @@ const AppointmentForm = () => {
               <span className="text-red-500">{form.formState.errors.appointment_type.message}</span>
             )}
           </div>
+
+          {/* Duration Select - Only shows when appointment type has multiple durations */}
+          {showDurationSelect && (
+            <div>
+              <label htmlFor="duration_minutes">Durata*</label>
+              <select
+                id="duration_minutes"
+                {...form.register("duration_minutes")}
+                className="w-full p-2 border rounded"
+                onChange={(e) => {
+                  const newDuration = parseInt(e.target.value);
+                  form.setValue("duration_minutes", newDuration);
+                  // Refetch time slots when duration changes
+                  if (form.getValues("start_time")) {
+                    fetchTimeSlots(
+                      form.getValues("start_time"),
+                      form.getValues("appointment_type")
+                    );
+                  }
+                }}
+              >
+                {appointmentTypes
+                  .find(t => t.type === form.getValues("appointment_type"))
+                  ?.durations.map((duration) => (
+                    <option key={duration} value={duration}>
+                      {duration} minuti
+                    </option>
+                  ))}
+              </select>
+              {form.formState.errors.duration_minutes && (
+                <span className="text-red-500">{form.formState.errors.duration_minutes.message}</span>
+              )}
+            </div>
+          )}
 
           {/* Note Field */}
           <div>

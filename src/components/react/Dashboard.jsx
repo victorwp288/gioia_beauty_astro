@@ -534,7 +534,7 @@ const Dashboard = () => {
     <div className="p-4 space-y-8">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold">Welcome, {session.user.email}</h1>
+          <h1 className="text-2xl bg-blue-600 text-white font-bold">Welcome, {session.user.email}</h1>
           <button
             onClick={() => setCreateModalOpen(true)}
             className="px-4 py-2 font-bold text-white bg-green-600 rounded hover:bg-green-700"
