@@ -1,4 +1,4 @@
-import React, { createElement } from 'react';
+import React__default, { createElement } from 'react';
 import ReactDOM from 'react-dom/server';
 
 const opts = {
@@ -73,7 +73,7 @@ async function check(Component, props, children) {
 		return false;
 
 	if (Component.prototype != null && typeof Component.prototype.render === 'function') {
-		return React.Component.isPrototypeOf(Component) || React.PureComponent.isPrototypeOf(Component);
+		return React__default.Component.isPrototypeOf(Component) || React__default.PureComponent.isPrototypeOf(Component);
 	}
 
 	let isReactComponent = false;
@@ -85,7 +85,7 @@ async function check(Component, props, children) {
 			}
 		} catch {}
 
-		return React.createElement('div');
+		return React__default.createElement('div');
 	}
 
 	await renderToStaticMarkup(Tester, props, children, {});
@@ -115,7 +115,7 @@ async function renderToStaticMarkup(Component, props, { default: children, ...sl
 	const slots = {};
 	for (const [key, value] of Object.entries(slotted)) {
 		const name = slotName(key);
-		slots[name] = React.createElement(StaticHtml, {
+		slots[name] = React__default.createElement(StaticHtml, {
 			hydrate: needsHydration(metadata),
 			value,
 			name,
@@ -132,7 +132,7 @@ async function renderToStaticMarkup(Component, props, { default: children, ...sl
 		const convert = await import('./chunks/vnode-children_BkR_XoPb.mjs').then((mod) => mod.default);
 		newProps.children = convert(children);
 	} else if (newChildren != null) {
-		newProps.children = React.createElement(StaticHtml, {
+		newProps.children = React__default.createElement(StaticHtml, {
 			hydrate: needsHydration(metadata),
 			value: newChildren,
 		});
@@ -143,7 +143,7 @@ async function renderToStaticMarkup(Component, props, { default: children, ...sl
 		attrs['data-action-key'] = formState[1];
 		attrs['data-action-name'] = formState[2];
 	}
-	const vnode = React.createElement(Component, newProps);
+	const vnode = React__default.createElement(Component, newProps);
 	const renderOptions = {
 		identifierPrefix: prefix,
 		formState,

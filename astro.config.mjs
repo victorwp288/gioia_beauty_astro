@@ -15,4 +15,5 @@ export default defineConfig({
     },
     maxDuration: 8,
   }),
+  site: 'https://your-website.com',
 });
