@@ -5,6 +5,7 @@ interface Props {
 import '../styles/global.css';
 const { title } = Astro.props;
 import Navbar from '../components/react/Navbar.jsx';
+import SpeedInsights from '@vercel/speed-insights/astro';
 ---
 
 <!doctype html>
@@ -22,4 +23,12 @@ import Navbar from '../components/react/Navbar.jsx';
 		<slot />
 	</body>
 </html>
+
+<script is:inline>
+  function speedInsightsBeforeSend(data){
+    console.log("Speed Insights before send", data)
+    return data;
+  }
+</script>
+<SpeedInsights />
 
