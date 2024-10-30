@@ -1,5 +1,6 @@
 ---
 // src/components/Accordion.astro
+import { Image } from 'astro:assets'
 const { title, description, image, imagePosition, children } = Astro.props;
 ---
 <div class="border border-gray-300 rounded-md mb-4">
@@ -9,7 +10,7 @@ const { title, description, image, imagePosition, children } = Astro.props;
         <h3 class="font-semibold">{title}</h3>
         <p class="text-sm text-gray-500">{description}</p>
       </div>
-      <img src={image} alt={`${title} image`} class="w-6 h-6" />
+      <Image src={image} alt={`${title} image`} class="w-6 h-6" />
     </summary>
     <div class="p-4">
       {children}

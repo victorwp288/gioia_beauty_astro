@@ -1,9 +1,13 @@
+---
+import { Image } from 'astro:assets';
+import reception4 from '../../images/reception4.jpg'
 
+---
 <div class="relative h-screen bg-cover bg-center md:mt-10 md:h-[95vh]">
   <!-- Background Image -->
-  <img
+  <Image
     class="h-full w-full object-cover"
-    src="/images/reception4.jpg"
+    src={reception4}
     alt="Duration of the service"
     width="1920"  
     height="1080" 
@@ -39,8 +43,8 @@
           >
             Scopri i nostri servizi
           </a>
-          <img
-            src="/images/down-arrow.svg"
+          <Image
+            src={reception4}
             alt="Down arrow"
             width="24" 
             height="24" 

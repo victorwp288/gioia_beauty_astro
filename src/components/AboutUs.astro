@@ -1,4 +1,9 @@
+---
+import { Image } from 'astro:assets'
+import gioiaPortrait from '../../images/gioia-portrait.jpg'
+import gioiaPortraitSquare from '../../images/gioia-portrait-square.jpg'
 
+---
 <div class="flex flex-col md:flex-row md:w-[100vw] h-auto md:h-screen">
   <div class="flex-1 flex-shrink-0 md:p-[5%] md:py-8 py-10 overflow-auto">
     <div class="flex flex-col gap-2 py-2 pb-6 md:gap-4 md:py-4 px-5">
@@ -34,8 +39,8 @@
     {/* This image will only be shown on mobile */}
     <div class="md:hidden w-full h-64 flex items-end mt-4">
       <div class="w-full h-full relative">
-        <img
-          src="/images/gioia-portrait.jpg"
+        <Image
+          src={gioiaPortrait}
           alt="Portrait of Gioia"
           class="object-cover absolute inset-0 w-full h-full"
           width="400"
@@ -52,8 +57,8 @@
   </div>
   <div class="flex-none hidden md:block w-1/2 h-64 md:h-full flex items-end">
     <div class="w-full h-full relative">
-      <img
-        src="/images/gioia-portrait-square.jpg"
+      <Image
+        src={gioiaPortraitSquare}
         alt="Portrait of Gioia"
         class="object-cover absolute inset-0 w-full h-full"
         width="800"
