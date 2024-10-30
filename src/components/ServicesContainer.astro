@@ -13,11 +13,12 @@ import cerettaData from '../../data/cerettaData.js';
 import ritualiData from '../../data/ritualiData.js';
 import makeupData from '../../data/makeupData.js';
 import bagnoTurcoData from '../../data/bagnoTurcoData.js';
-
+import rituale from '../images/rituale.jpg'
+import ceretta from '../images/ceretta.jpg'
 import { Image } from 'astro:assets'
-import bagnoTurco from '../../images/bagno-turco.jpg'
-import clock from '../../images/clock.svg'
-import tick from '../../images/tick.svg'
+import bagnoTurco from '../images/bagno-turco.jpg'
+import clock from '../images/clock.svg'
+import tick from '../images/tick.svg'
 import { OK } from 'astro:schema';
 
 ---
@@ -41,6 +42,8 @@ import { OK } from 'astro:schema';
         title="Bagno Turco"
         description="Seduta di bagno turco con aromaterapia e cromoterapia: ideale per purificare l'organismo attraverso la sudorazione, beneficiando il sistema nervoso, la pelle, e migliorando la circolazione sanguigna e linfatica."
         image="/images/makeup.jpg" 
+		width="1920"
+		height="1080"
         imagePosition="right"
       >
         <div class="grid gap-8 px-6 py-8 md:grid-cols-3 md:px-12 md:py-12">
@@ -64,6 +67,8 @@ import { OK } from 'astro:schema';
         title="Mani e piedi"
         description="Rivitalizza le tue mani e i tuoi piedi con i nostri trattamenti specializzati. Offriamo manicure e pedicure di alta qualità, scrub esfolianti e massaggi rilassanti per donare morbidezza e bellezza alla tua pelle."
         image="/images/feet.jpg" 
+        width="1920"
+        height="1080"
         imagePosition="left"
       >
         <div class="grid gap-12 px-6 pb-4 md:grid-cols-2 md:px-12 md:py-12">
@@ -130,6 +135,8 @@ import { OK } from 'astro:schema';
         title="Ciglia e sopracciglia"
         description="Definisci il tuo sguardo con i nostri trattamenti per ciglia e sopracciglia. Offriamo laminazione, extension e design delle sopracciglia per uno sguardo intenso e affascinante."
         image="/images/ciglia.jpg"
+        width="1920"
+        height="1080"
         imagePosition="right"
       >
         <div class="grid gap-8 px-6 py-8 md:grid-cols-3 md:px-12 md:py-12">
@@ -153,6 +160,8 @@ import { OK } from 'astro:schema';
         title="Massaggi viso e corpo"
         description="Concediti un momento di relax con i nostri massaggi viso e corpo. Tecniche personalizzate per alleviare lo stress, migliorare la circolazione e tonificare la pelle, per un benessere completo."
         image="/images/massaggi.jpg" 
+        width="1920"
+        height="1080"
         imagePosition="left"
       >
         <div class="grid gap-8 px-6 py-8 md:grid-cols-2 md:px-12 md:py-12">
@@ -177,7 +186,9 @@ import { OK } from 'astro:schema';
       <Accordion
         title="Ceretta"
         description="Dimentica la rasatura quotidiana con i nostri servizi di ceretta professionale. Offriamo trattamenti per tutte le aree del corpo, utilizzando prodotti di alta qualità per una pelle liscia e setosa a lungo."
-        image="/images/ceretta.jpg"
+        image={ceretta}
+        width="1920"
+        height="1080"
         imagePosition="right"
       >
         <div class="flex flex-col">
@@ -217,7 +228,9 @@ import { OK } from 'astro:schema';
       <Accordion
         title="Rituali dal mondo"
         description="I rituali dal mondo propongono un’esperienza multisensoriale profondamente immersiva, a partire dagli aromi. Gli ingredienti e le pratiche proposte provengono direttamente dalle millenarie tradizioni di bellezza."
-        image="/images/rituale.jpg" 
+        image={rituale} 
+        width="1920"
+        height="1080"
         imagePosition="left"
       >
         <div class="px-6 pb-12 md:px-12">
@@ -280,6 +293,8 @@ import { OK } from 'astro:schema';
         title="Make-up e acconciature"
         description="Esalta la tua bellezza naturale con i nostri servizi di make-up e acconciature. Dai look quotidiani alle occasioni speciali, i nostri esperti ti aiuteranno a trovare lo stile perfetto per te."
         image="/images/makeup.jpg"
+		width="1920"
+		height="1080"
         imagePosition="right"
       >
         <div class="grid grid-cols-1 gap-8 px-6 py-8 md:grid-cols-3 md:px-12 md:py-12">

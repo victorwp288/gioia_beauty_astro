@@ -10,7 +10,7 @@ const { title, description, image, imagePosition, children } = Astro.props;
         <h3 class="font-semibold">{title}</h3>
         <p class="text-sm text-gray-500">{description}</p>
       </div>
-      <Image src={image} alt={`${title} image`} class="w-6 h-6" />
+      <Image src={image} alt={`${title} image`} width={500} height={500} class="w-6 h-6" />
     </summary>
     <div class="p-4">
       {children}

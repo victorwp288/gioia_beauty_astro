@@ -1,5 +1,5 @@
 import { useState, Suspense, lazy } from "react";
-
+import logo from "../../images/logo.png";
 // Use lazy loading instead of react-loadable
 const BurgerMenu = lazy(() => import("./BurgerMenu"));
 
@@ -33,7 +33,7 @@ function Navbar() {
   return (
     <div className="fixed top-0 z-40 flex w-full items-center justify-between bg-white px-4 py-4 text-sm transition duration-300 ease-in-out md:px-28 lg:px-64">
       <a href="/">
-        <img src="/images/logo.png" className="w-16 lg:w-20" alt="Logo" />
+        <img src={logo} className="w-16 lg:w-20" alt="Logo" />
       </a>
       <ul className="hidden gap-10 md:flex">
         <li>

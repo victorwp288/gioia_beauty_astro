@@ -1,5 +1,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
+import tick from "../../images/tick-white.svg";
+import chevronLeft from "../../images/chevron-left.svg";
+import chevronRight from "../../images/chevron-right.svg";
 
 const Technologies = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -93,7 +96,7 @@ const Technologies = () => {
             >
               <div className="flex flex-col gap-2">
                 <img
-                  src="/images/tick-white.svg"
+                  src={tick}
                   width="26"
                   height="26"
                   alt="technology indicator"
@@ -111,7 +114,7 @@ const Technologies = () => {
             className="absolute left-2 top-1/2 text-white rounded-full"
           >
             <img
-              src="/images/chevron-left.svg"
+              src={chevronLeft}
               alt="left arrow"
               className="w-6 h-6"
             />
@@ -123,7 +126,7 @@ const Technologies = () => {
             className="absolute right-2 top-1/2 text-white rounded-full"
           >
             <img
-              src="/images/chevron-right.svg"
+              src={chevronRight}
               alt="right arrow"
               className="w-6 h-6"
             />
