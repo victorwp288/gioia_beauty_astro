@@ -756,37 +756,159 @@ const Dashboard = () => {
     );
   };
 
-  const RegularCustomersSection = () => (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Regular Customers</h2>
-        <button
-          onClick={() => setRegularCustomerModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Add Regular Customer
-        </button>
-      </div>
+  const RegularCustomersSection = () => {
+    const [editingCustomer, setEditingCustomer] = useState(null);
+    const [editFormData, setEditFormData] = useState({
+      name: "",
+      phone_number: "",
+      email: "",
+      notes: "",
+    });
 
-      <div className="space-y-4">
-        {regularCustomers.map((customer) => (
-          <div
-            key={customer.id}
-            className="border p-4 rounded-lg hover:bg-gray-50"
+    const handleEditClick = (customer) => {
+      setEditingCustomer(customer);
+      setEditFormData({
+        name: customer.name,
+        phone_number: customer.phone_number || "",
+        email: customer.email || "",
+        notes: customer.notes || "",
+      });
+    };
+
+    const handleEditSubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const { data, error } = await supabase
+          .from("regular_customers")
+          .update(editFormData)
+          .eq("id", editingCustomer.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setRegularCustomers((prev) =>
+          prev.map((customer) =>
+            customer.id === editingCustomer.id ? data : customer
+          )
+        );
+        setEditingCustomer(null);
+        alert("Customer updated successfully");
+      } catch (error) {
+        console.error("Error updating customer:", error);
+        alert("Error updating customer");
+      }
+    };
+
+    return (
+      <div className="bg-white p-4 rounded-lg shadow">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Regular Customers</h2>
+          <button
+            onClick={() => setRegularCustomerModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            <h3 className="font-semibold">{customer.name}</h3>
-            <p className="text-sm text-gray-600">{customer.phone_number}</p>
-            <p className="text-sm text-gray-600">{customer.email}</p>
-            {customer.notes && (
-              <p className="mt-2 text-sm text-gray-600">
-                Notes: {customer.notes}
-              </p>
-            )}
-          </div>
-        ))}
+            Add Regular Customer
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {regularCustomers.map((customer) => (
+            <div
+              key={customer.id}
+              className="border p-4 rounded-lg hover:bg-gray-50 relative"
+            >
+              {editingCustomer?.id === customer.id ? (
+                <form onSubmit={handleEditSubmit} className="space-y-3">
+                  <input
+                    type="text"
+                    className="w-full p-2 border rounded"
+                    value={editFormData.name}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    required
+                  />
+                  <input
+                    type="tel"
+                    className="w-full p-2 border rounded"
+                    value={editFormData.phone_number}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        phone_number: e.target.value,
+                      }))
+                    }
+                  />
+                  <input
+                    type="email"
+                    className="w-full p-2 border rounded"
+                    value={editFormData.email}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({ ...prev, email: e.target.value }))
+                    }
+                  />
+                  <textarea
+                    className="w-full p-2 border rounded"
+                    value={editFormData.notes}
+                    onChange={(e) =>
+                      setEditFormData((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingCustomer(null)}
+                      className="px-3 py-1 text-gray-600 hover:text-gray-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleEditClick(customer)}
+                    className="absolute top-2 right-2 p-2 text-gray-400 hover:text-blue-600"
+                    title="Edit customer"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  </button>
+                  <h3 className="font-semibold">{customer.name}</h3>
+                  <p className="text-sm text-gray-600">{customer.phone_number}</p>
+                  <p className="text-sm text-gray-600">{customer.email}</p>
+                  {customer.notes && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Notes: {customer.notes}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) {
     return <div className="p-4">Loading...</div>;
